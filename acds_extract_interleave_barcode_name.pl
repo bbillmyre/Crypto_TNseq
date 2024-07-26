@@ -1,5 +1,3 @@
-use String::Approx 'amatch';
-use String::Approx 'aindex';
 $first =@ARGV[0];
 $second = @ARGV[1];
 $out = @ARGV[2];

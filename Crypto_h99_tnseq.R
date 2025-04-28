@@ -1083,18 +1083,13 @@ reg_frame$Source=factor(reg_frame$Source,levels=c("Initial","DMSO","IC50"))
 
 ggplot(reg_frame)+geom_boxplot(aes(x=Source,y=Frequency,fill=Side))+theme_bw()
 
-##orientation check
+##Fig S5
 ggplot(reg_frame)+geom_boxplot(aes(x=Source,y=Frequency,fill=Side))+theme_bw()+facet_wrap(~Strand,ncol=2)
 
-##maybe add this to orientation check supp fig to show the two data types correlate pretty well
-ggplot(subset(master_table_2,LenSite>20 & Len_5 >20))+geom_point(aes(x=Mean50_DMSO,y=Mean50_DMSO_5))+theme_bw()+stat_smooth(method = lm,aes(x=Mean50_DMSO,y=Mean50_DMSO_5))
-
-model <- lm(Mean50_DMSO ~ Mean50_DMSO_5, data = subset(master_table_2,LenSite>20 & Len_5 >20))
-model
 
 summary(model)
 
-##Figure 5C
+##Figure 5E
 
 #just essentials
 filt_master_table=subset(master_table_2, Len_5>4 & ess=="ESS")

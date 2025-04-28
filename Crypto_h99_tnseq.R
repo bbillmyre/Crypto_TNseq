@@ -2,6 +2,7 @@ setwd("E:/rb2091/tnseq/Crypto_TN_seq_paper_final_analysis/predicting_essentials"
 library(randomForest)
 library("ggplot2")
 library(readxl)
+library("cowplot")
 
 genes=read.table("all_unique_genes.txt")
 GFF=read.table("FungiDB-44_CneoformansH99.gff",sep="\t")
@@ -685,6 +686,8 @@ crypto_ess_table=subset(crypto_ess_table,select=-c(tran,empty))
 
 crypto_full_table_2 = merge(crypto_ess_table,master_table_2,by="Gene")
 
+crypto_full_table_2 = unique(crypto_full_table_2)
+
 ##essentials_human
 no_human=unique(read.table(file="crypto_WITHOUT_human_ortho.csv",header=FALSE,sep="\t"))
 
@@ -705,9 +708,9 @@ master_table_2=rbind(master_no_human_2,master_in_human_2)
 ggplot(subset(all_combined_frame,chr!="CP003834"))+geom_histogram(aes(x=coord))+facet_wrap(~chr,scales="free_x",ncol=7)+theme_bw()
 ##end Fig S1A
 
-
+##for metagene plots
 centered_data=data.frame(Gene=NULL,adj_freq=NULL,adj_coord=NULL,set=NULL)
-
+length_frame=data.frame(length=NULL)
 for (gene in master_table_2$Gene){
   
   cur_gene=GFF[grep(gene,GFF$V9), ] 
@@ -715,17 +718,54 @@ for (gene in master_table_2$Gene){
   cur_min=min(cur_gene$V4)
   cur_max=max(cur_gene$V5)
   cur_chr=head(cur_gene$V1,1)
+  cur_strand=head(cur_gene$V7,1)
   cur_name=substr(head(cur_gene$V9,1),4,13)
+  length_frame=rbind(length_frame,data.frame(length=(cur_max-cur_min)))
+  if (cur_strand == "+"){
   
-  cur_gene = subset(all_combined_frame, chr==cur_chr & coord < (cur_min+2000) & coord > (cur_min-2000))
-  cur_gene$coord=cur_gene$coord-cur_min
-  cur_gene$ave_freq_T0=cur_gene$ave_freq_T0/sum(cur_gene$ave_freq_T0)
+  cur_gene_up = subset(all_combined_frame, chr==cur_chr & coord < (cur_min) & coord > (cur_min-2000))
+  cur_gene_up$coord=cur_gene_up$coord-cur_min
+  cur_gene_up$ave_freq_T0=cur_gene_up$ave_freq_T0/sum(cur_gene_up$ave_freq_T0)
+  
+  cur_gene_down = subset(all_combined_frame, chr==cur_chr & coord > (cur_max) & coord < (cur_max+2000))
+  cur_gene_down$coord=(cur_gene_down$coord-cur_max)+2000
+  cur_gene_down$ave_freq_T0=cur_gene_down$ave_freq_T0/sum(cur_gene_down$ave_freq_T0)
+  
+  cur_gene_body = subset(all_combined_frame, chr==cur_chr & coord >= (cur_min) & coord <= cur_max)
+  cur_gene_body$coord=((cur_gene_body$coord-cur_min)/(cur_max-cur_min))*2000
+  
+  cur_gene=rbind(cur_gene_down,cur_gene_up,cur_gene_body)
+  
+  
+  }
+  
+  
+  if (cur_strand == "-"){
+    
+    cur_gene_up = subset(all_combined_frame, chr==cur_chr & coord > (cur_max) & coord < (cur_max+2000))
+    cur_gene_up$coord=(cur_gene_up$coord-cur_max)*-1
+    cur_gene_up$ave_freq_T0=cur_gene_up$ave_freq_T0/sum(cur_gene_up$ave_freq_T0)
+    
+    cur_gene_down = subset(all_combined_frame, chr==cur_chr & coord < (cur_min) & coord > (cur_min-2000))
+    cur_gene_down$coord=((cur_gene_down$coord-cur_min)*-1)+2000
+    cur_gene_down$ave_freq_T0=cur_gene_down$ave_freq_T0/sum(cur_gene_down$ave_freq_T0)
+    
+    cur_gene_body = subset(all_combined_frame, chr==cur_chr & coord >= (cur_min) & coord <= cur_max)
+    cur_gene_body$coord=(((cur_gene_body$coord-cur_max)*-1)/(cur_max-cur_min))*2000
+    
+    cur_gene=rbind(cur_gene_down,cur_gene_up,cur_gene_body)
+    
+    
+  }
+  
+  
   
   if(nrow(cur_gene)>0){
     centered_data=rbind(centered_data,data.frame(Gene=gene,adj_freq=cur_gene$ave_freq_T0,adj_coord=cur_gene$coord,set="ALL"))
-    
   }
-}
+  }
+  
+
 
 
 for (gene in subset(master_table_2,ess=="ESS")$Gene){
@@ -735,11 +775,48 @@ for (gene in subset(master_table_2,ess=="ESS")$Gene){
   cur_min=min(cur_gene$V4)
   cur_max=max(cur_gene$V5)
   cur_chr=head(cur_gene$V1,1)
+  cur_strand=head(cur_gene$V7,1)
   cur_name=substr(head(cur_gene$V9,1),4,13)
   
-  cur_gene = subset(all_combined_frame, chr==cur_chr & coord < (cur_min+2000) & coord > (cur_min-2000))
-  cur_gene$coord=cur_gene$coord-cur_min
-  cur_gene$ave_freq_T0=cur_gene$ave_freq_T0/sum(cur_gene$ave_freq_T0)
+  if (cur_strand == "+"){
+    
+    cur_gene_up = subset(all_combined_frame, chr==cur_chr & coord < (cur_min) & coord > (cur_min-2000))
+    cur_gene_up$coord=cur_gene_up$coord-cur_min
+    cur_gene_up$ave_freq_T0=cur_gene_up$ave_freq_T0/sum(cur_gene_up$ave_freq_T0)
+    
+    cur_gene_down = subset(all_combined_frame, chr==cur_chr & coord > (cur_max) & coord < (cur_max+2000))
+    cur_gene_down$coord=(cur_gene_down$coord-cur_max)+2000
+    cur_gene_down$ave_freq_T0=cur_gene_down$ave_freq_T0/sum(cur_gene_down$ave_freq_T0)
+    
+    cur_gene_body = subset(all_combined_frame, chr==cur_chr & coord >= (cur_min) & coord <= cur_max)
+    cur_gene_body$coord=((cur_gene_body$coord-cur_min)/(cur_max-cur_min))*2000
+    
+    cur_gene=rbind(cur_gene_down,cur_gene_up,cur_gene_body)
+    
+    
+  }
+  
+  
+  if (cur_strand == "-"){
+    
+    cur_gene_up = subset(all_combined_frame, chr==cur_chr & coord > (cur_max) & coord < (cur_max+2000))
+    cur_gene_up$coord=(cur_gene_up$coord-cur_max)*-1
+    cur_gene_up$ave_freq_T0=cur_gene_up$ave_freq_T0/sum(cur_gene_up$ave_freq_T0)
+    
+    cur_gene_down = subset(all_combined_frame, chr==cur_chr & coord < (cur_min) & coord > (cur_min-2000))
+    cur_gene_down$coord=((cur_gene_down$coord-cur_min)*-1)+2000
+    cur_gene_down$ave_freq_T0=cur_gene_down$ave_freq_T0/sum(cur_gene_down$ave_freq_T0)
+    
+    cur_gene_body = subset(all_combined_frame, chr==cur_chr & coord >= (cur_min) & coord <= cur_max)
+    cur_gene_body$coord=(((cur_gene_body$coord-cur_max)*-1)/(cur_max-cur_min))*2000
+    
+    cur_gene=rbind(cur_gene_down,cur_gene_up,cur_gene_body)
+    
+    
+  }
+  
+  
+  
   
   if(nrow(cur_gene)>0){
     centered_data=rbind(centered_data,data.frame(Gene=gene,adj_freq=cur_gene$ave_freq_T0,adj_coord=cur_gene$coord,set="Essential"))
@@ -754,12 +831,45 @@ for (gene in subset(master_table_2,ess=="NESS")$Gene){
   cur_min=min(cur_gene$V4)
   cur_max=max(cur_gene$V5)
   cur_chr=head(cur_gene$V1,1)
+  cur_strand=head(cur_gene$V7,1)
   cur_name=substr(head(cur_gene$V9,1),4,13)
+ 
+  if (cur_strand == "+"){
+    
+    cur_gene_up = subset(all_combined_frame, chr==cur_chr & coord < (cur_min) & coord > (cur_min-2000))
+    cur_gene_up$coord=cur_gene_up$coord-cur_min
+    cur_gene_up$ave_freq_T0=cur_gene_up$ave_freq_T0/sum(cur_gene_up$ave_freq_T0)
+    
+    cur_gene_down = subset(all_combined_frame, chr==cur_chr & coord > (cur_max) & coord < (cur_max+2000))
+    cur_gene_down$coord=(cur_gene_down$coord-cur_max)+2000
+    cur_gene_down$ave_freq_T0=cur_gene_down$ave_freq_T0/sum(cur_gene_down$ave_freq_T0)
+    
+    cur_gene_body = subset(all_combined_frame, chr==cur_chr & coord >= (cur_min) & coord <= cur_max)
+    cur_gene_body$coord=((cur_gene_body$coord-cur_min)/(cur_max-cur_min))*2000
+    
+    cur_gene=rbind(cur_gene_down,cur_gene_up,cur_gene_body)
+    
+    
+  }
   
-  cur_gene = subset(all_combined_frame, chr==cur_chr & coord < (cur_min+2000) & coord > (cur_min-2000))
-  cur_gene$coord=cur_gene$coord-cur_min
-  cur_gene$ave_freq_T0=cur_gene$ave_freq_T0/sum(cur_gene$ave_freq_T0)
   
+  if (cur_strand == "-"){
+    
+    cur_gene_up = subset(all_combined_frame, chr==cur_chr & coord > (cur_max) & coord < (cur_max+2000))
+    cur_gene_up$coord=(cur_gene_up$coord-cur_max)*-1
+    cur_gene_up$ave_freq_T0=cur_gene_up$ave_freq_T0/sum(cur_gene_up$ave_freq_T0)
+    
+    cur_gene_down = subset(all_combined_frame, chr==cur_chr & coord < (cur_min) & coord > (cur_min-2000))
+    cur_gene_down$coord=((cur_gene_down$coord-cur_min)*-1)+2000
+    cur_gene_down$ave_freq_T0=cur_gene_down$ave_freq_T0/sum(cur_gene_down$ave_freq_T0)
+    
+    cur_gene_body = subset(all_combined_frame, chr==cur_chr & coord >= (cur_min) & coord <= cur_max)
+    cur_gene_body$coord=(((cur_gene_body$coord-cur_max)*-1)/(cur_max-cur_min))*2000
+    
+    cur_gene=rbind(cur_gene_down,cur_gene_up,cur_gene_body)
+    
+    
+  }
   if(nrow(cur_gene)>0){
     centered_data=rbind(centered_data,data.frame(Gene=gene,adj_freq=cur_gene$ave_freq_T0,adj_coord=cur_gene$coord,set="Nonessential"))
     
@@ -875,6 +985,64 @@ fig4c_frame=subset(all_combined_frame, Gene=="CNAG_02091" | Gene =="CNAG_01720"|
 
 ggplot(fig4c_frame)+geom_boxplot(aes(x=Gene,y=log10(ave_freq_IC50/ave_freq_DMSO))) + theme_bw()
 
+#figure 5A
+
+cur_gene=GFF[grep(acc_num,GFF$V9), ] 
+
+cur_min=min(cur_gene$V4)
+cur_max=max(cur_gene$V5)
+cur_chr=head(cur_gene$V1,1)
+cur_name=substr(head(cur_gene$V9,1),4,13)
+
+
+tar_gene_frame= subset(all_combined_frame, chr==cur_chr & abs(coord)<(cur_max+300) & abs(coord)>(cur_min-300))
+
+
+cds_coords=read.csv("crypto_h99_genes_whole_cds.gff",sep="\t",header=FALSE)
+colnames(cds_coords)<-c("Chr","Source","Type","Start","End"," ","Strand","  ","Acc")
+
+tar_gene = subset(cds_coords,Acc==acc_num)
+
+
+
+coding_min= min(tar_gene$Start)
+coding_max= max(tar_gene$End)
+
+mean_pre=mean(subset(tar_gene_frame,abs(coord)<coding_max & abs(coord)>coding_min)$ave_freq_T0)
+mean_post=mean(subset(tar_gene_frame,abs(coord)<coding_max & abs(coord)>coding_min)$ave_freq_IC50)
+
+max_freq= max(c(tar_gene_frame$ave_freq_T0,tar_gene_frame$ave_freq_IC50))
+
+
+p1= ggplot(tar_gene_frame)+geom_bar(aes(x=abs(coord),y=(ave_freq_T0)),stat="identity",color="#56B4E9",fill="#56B4E9")+theme_bw()+
+  theme(panel.grid.minor = element_blank())+theme(legend.position = "none")+
+  labs(alt="Post-Sex")+
+  ylab("starting insert frequency") + theme(axis.text.x.bottom = element_blank())+theme(axis.ticks.x = element_blank())+
+  xlim(c(tar_gene$Start-300,tar_gene$End+300))+ ylim(c(0,max_freq*1.1)) +theme(axis.title.x = element_blank())+
+  geom_segment(x=coding_min,xend=coding_max,y=mean_pre,yend=mean_pre,color ="black",linetype=2 )+
+  ggtitle("Transposon insert frequencies across transcript")+theme(plot.title = element_text(hjust = 0.5))
+
+
+
+p2= ggplot(cur_gene)+geom_hline(yintercept=0)+geom_rect(aes(xmin=V4,xmax=V5,ymin=-1,ymax=1),fill="#009e73ff") +
+  xlim(c(tar_gene$Start-300,tar_gene$End+300))+  theme_bw() +theme(axis.text.y.left = element_blank())+theme(axis.ticks = element_blank())+theme(panel.grid=element_blank())+
+  theme(axis.text.x.bottom = element_blank())+theme(panel.border=element_blank())
+
+
+
+p3=ggplot(tar_gene_frame)+geom_bar(aes(x=abs(coord),y=(-ave_freq_IC50)),stat="identity",color="#E69F00",fill="#E69F00")+theme_bw()+
+  theme(panel.grid.minor = element_blank())+theme(legend.position = "none")+
+  labs(alt="Post-Sex")+xlab("Genome Coordinate")+
+  ylab("IC50 insert frequency") +
+  xlim(c(tar_gene$Start-300,tar_gene$End+300))+  ylim(c(-max_freq*1.1,0))+
+  geom_segment(x=coding_min,xend=coding_max,y=-mean_post,yend=-mean_post,color ="black",linetype=2 )
+
+plot_grid(p1,p2,p3,ncol=1,align="v",rel_heights=c(9,2,9))
+
+
+
+
+
 
 #Figure 5B
 
@@ -889,22 +1057,22 @@ erg11_3prime$T0Norm=log10(erg11_3prime$ave_freq_T0/erg11_3prime$ave_freq_T0)
 erg11_3prime$DMSONorm=log10(erg11_3prime$ave_freq_DMSO/erg11_3prime$ave_freq_T0)
 erg11_3prime$IC50Norm=log10(erg11_3prime$ave_freq_IC50/erg11_3prime$ave_freq_T0)
 
-Initial_freq_5= data.frame(erg11_5prime$T0Norm,"Initial","5prime")
-DMSO_freq_5=data.frame(erg11_5prime$DMSONorm,"DMSO","5prime")
-IC50_freq_5=data.frame(erg11_5prime$IC50Norm,"IC50","5prime")
+Initial_freq_5= data.frame(erg11_5prime$T0Norm,"Initial","5prime", erg11_5prime$strand)
+DMSO_freq_5=data.frame(erg11_5prime$DMSONorm,"DMSO","5prime", erg11_5prime$strand)
+IC50_freq_5=data.frame(erg11_5prime$IC50Norm,"IC50","5prime", erg11_5prime$strand)
 
-Initial_freq_3= data.frame(erg11_3prime$T0Norm,"Initial","3prime")
-DMSO_freq_3=data.frame(erg11_3prime$DMSONorm,"DMSO","3prime")
-IC50_freq_3=data.frame(erg11_3prime$IC50Norm,"IC50","3prime")
+Initial_freq_3= data.frame(erg11_3prime$T0Norm,"Initial","3prime", erg11_3prime$strand)
+DMSO_freq_3=data.frame(erg11_3prime$DMSONorm,"DMSO","3prime", erg11_3prime$strand)
+IC50_freq_3=data.frame(erg11_3prime$IC50Norm,"IC50","3prime", erg11_3prime$strand)
 
 
-colnames(Initial_freq_5)=c("Frequency","Source","Strand")
-colnames(DMSO_freq_5)=c("Frequency","Source","Strand")
-colnames(IC50_freq_5)=c("Frequency","Source","Strand")
+colnames(Initial_freq_5)=c("Frequency","Source","Side","Strand")
+colnames(DMSO_freq_5)=c("Frequency","Source","Side","Strand")
+colnames(IC50_freq_5)=c("Frequency","Source","Side","Strand")
 
-colnames(Initial_freq_3)=c("Frequency","Source","Strand")
-colnames(DMSO_freq_3)=c("Frequency","Source","Strand")
-colnames(IC50_freq_3)=c("Frequency","Source","Strand")
+colnames(Initial_freq_3)=c("Frequency","Source","Side","Strand")
+colnames(DMSO_freq_3)=c("Frequency","Source","Side","Strand")
+colnames(IC50_freq_3)=c("Frequency","Source","Side","Strand")
 
 
 reg_frame=rbind(DMSO_freq_5,IC50_freq_5,DMSO_freq_3,IC50_freq_3)
@@ -913,7 +1081,18 @@ reg_frame$Source=as.factor(reg_frame$Source)
 reg_frame$Source=factor(reg_frame$Source,levels=c("Initial","DMSO","IC50"))
 
 
-ggplot(reg_frame)+geom_boxplot(aes(x=Source,y=Frequency,fill=Strand))+theme_bw()
+ggplot(reg_frame)+geom_boxplot(aes(x=Source,y=Frequency,fill=Side))+theme_bw()
+
+##orientation check
+ggplot(reg_frame)+geom_boxplot(aes(x=Source,y=Frequency,fill=Side))+theme_bw()+facet_wrap(~Strand,ncol=2)
+
+##maybe add this to orientation check supp fig to show the two data types correlate pretty well
+ggplot(subset(master_table_2,LenSite>20 & Len_5 >20))+geom_point(aes(x=Mean50_DMSO,y=Mean50_DMSO_5))+theme_bw()+stat_smooth(method = lm,aes(x=Mean50_DMSO,y=Mean50_DMSO_5))
+
+model <- lm(Mean50_DMSO ~ Mean50_DMSO_5, data = subset(master_table_2,LenSite>20 & Len_5 >20))
+model
+
+summary(model)
 
 ##Figure 5C
 
@@ -959,12 +1138,12 @@ target_frame=subset(filt_master_table, Gene== "CNAG_01137"|
                       Gene== "CNAG_05199"|
                       Gene== "CNAG_05909"|
                       Gene== "CNAG_06630"|
-                      Gene== "CNAG_06699"|
+                      Gene== "CNAG_06699"| 
                       Gene== "CNAG_07363"|
                       Gene== "CNAG_00554"|
                       Gene== "CNAG_01436"|
                       Gene== "CNAG_03225"|
-                      Gene== "CNAG_03358"|
+                      Gene== "CNAG_03358"| 
                       Gene== "CNAG_05635"|
                       Gene== "CNAG_05267"
                     
@@ -993,6 +1172,12 @@ colnames(flu_curve)=c("conc","growth")
 ggplot(flu_curve)+geom_point(aes(x=conc,y=growth))+theme_bw()+geom_hline(aes(yintercept=0.5))+
   scale_x_continuous(trans = "log2")
 ##end Figure S4
+
+
+
+
+
+
 
 
 
